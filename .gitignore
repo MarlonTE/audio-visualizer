@@ -1,0 +1,23 @@
+# Visual Studio Temporary Files
+.vs/
+*.vsidx
+*.suo
+*.user
+
+# Executables and object files
+*.exe
+*.obj
+*.ilk
+*.pdb
+*.ipch
+*.tlog
+*.lastbuildstate
+
+# Visual Studio Solution and Project Files
+*.sln
+*.vcxproj.user
+
+# Temporary files and build artifacts
+Debug/
+Release/
+x64/
