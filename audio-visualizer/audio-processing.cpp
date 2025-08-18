@@ -7,57 +7,47 @@
 void AudioProcessingThread(AudioData& sharedData, VisualizerData& sharedVisualizerData) {
     std::cout << "Hilo de procesamiento de señal iniciado." << std::endl;
 
-    // Crear un plan para la FFT.
-    // FFTW_ESTIMATE: no realiza ninguna medición, por lo que el tiempo de planificación es insignificante.
-    // La desventaja es que el rendimiento puede no ser óptimo.
-    // Aunque para nuestra aplicación, esto es suficiente.
     fftw_plan plan_forward;
-
-    // In-place FFT: la entrada se sobrescribe con la salida.
     fftw_complex* fft_out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * (FFT_SIZE / 2 + 1));
     if (fft_out == NULL) {
         std::cerr << "Error: No se pudo asignar memoria para fft_out." << std::endl;
         return;
     }
 
-    // Bucle principal de procesamiento
+    std::vector<double> dummy_in(FFT_SIZE);
+    plan_forward = fftw_plan_dft_r2c_1d(FFT_SIZE, dummy_in.data(), fft_out, FFTW_MEASURE);
+
     while (true) {
         std::unique_lock<std::mutex> lock(sharedData.mtx);
-
-        // Espera a que el hilo de captura de audio notifique que hay nuevos datos disponibles.
         sharedData.cv.wait(lock);
 
-        // La FFT se realiza aquí.
-        // La biblioteca FFTW necesita que la entrada sea de tipo double.
-        // `in_data` ya es un vector de double, así que podemos usarlo directamente.
-        plan_forward = fftw_plan_dft_r2c_1d(FFT_SIZE, sharedData.in_data.data(), fft_out, FFTW_ESTIMATE);
+        fftw_execute_dft_r2c(plan_forward, sharedData.in_data.data(), fft_out);
 
-        fftw_execute(plan_forward);
+        lock.unlock();
 
-        // Libera la memoria utilizada por el plan de FFT.
-        fftw_destroy_plan(plan_forward);
-
-        // Copia los datos de la FFT al vector de datos de salida compartido.
-        // Solo nos interesan los valores de magnitud.
-        // El espectro es simétrico, así que solo usamos la primera mitad (FFT_SIZE / 2).
         int write_index = sharedVisualizerData.write_buffer_index.load();
 
+        // Optimización: El mutex aquí era redundante.
+        // Se ha eliminado porque la técnica de doble búfer y el índice atómico
+        // ya previenen las condiciones de carrera al escribir en el búfer.
+
         for (int i = 0; i < NUM_BARS; ++i) {
-            // Calcula la magnitud del número complejo (real^2 + imag^2)^0.5
             double magnitude = sqrt(fft_out[i][0] * fft_out[i][0] + fft_out[i][1] * fft_out[i][1]);
-            // Escala la magnitud a un rango útil, logarítmicamente.
-            // NOTA: out_data es miembro de sharedVisualizerData, no de sharedData.
-            sharedVisualizerData.out_data[write_index][i] = 10.0 * log10(1 + magnitude);
+            double scaled_value = 10.0 * log10(1 + magnitude);
+
+            scaled_value = std::min(scaled_value, 50.0);
+            scaled_value = std::max(scaled_value, 0.0);
+
+            sharedVisualizerData.out_data[write_index][i] = scaled_value;
         }
 
         // Alternar el índice del búfer para que el hilo de renderizado lea del búfer que acaba de ser escrito.
         sharedVisualizerData.write_buffer_index.store(1 - write_index);
 
-        // Notifica al hilo de renderizado que hay nuevos datos de visualización disponibles.
-        lock.unlock();
+        // Notificar al hilo de renderizado que hay nuevos datos disponibles.
         sharedVisualizerData.cv.notify_one();
     }
 
-    // Liberar memoria
+    fftw_destroy_plan(plan_forward);
     fftw_free(fft_out);
 }
