@@ -23,181 +23,135 @@ void AudioCaptureThread(AudioData& sharedData) {
     IAudioCaptureClient* pCaptureClient = NULL;
     WAVEFORMATEX* pwfx = NULL;
 
-    // Búfer de acumulación para asegurar que solo enviamos datos completos de 1024 frames.
-    std::vector<double> accumulated_data;
+    // Buffer temporal para evitar la reasignación de memoria.
+    std::vector<double> local_buffer(FFT_SIZE);
+    int buffer_position = 0;
 
     // 1. Inicializar la biblioteca COM para el hilo.
     hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
     if (FAILED(hr)) {
-        std::cerr << "Error: CoInitializeEx falló. HRESULT: " << hr << std::endl;
-        return;
+        std::cerr << "Error: CoInitializeEx fallido, hr = 0x" << std::hex << hr << std::endl;
+        goto cleanup;
     }
 
-    // 2. Obtener el enumerador de dispositivos de audio por defecto.
+    // 2. Crear el enumerador de dispositivos.
     hr = CoCreateInstance(
-        CLSID_MMDeviceEnumerator, NULL,
-        CLSCTX_ALL, IID_IMMDeviceEnumerator,
-        (void**)&pEnumerator);
+        CLSID_MMDeviceEnumerator,
+        NULL,
+        CLSCTX_ALL,
+        IID_IMMDeviceEnumerator,
+        (void**)&pEnumerator
+    );
     if (FAILED(hr)) {
-        std::cerr << "Error: CoCreateInstance falló. HRESULT: " << hr << std::endl;
-        CoUninitialize();
-        return;
+        std::cerr << "Error: CoCreateInstance fallido, hr = 0x" << std::hex << hr << std::endl;
+        goto cleanup;
     }
 
-    // 3. Obtener el dispositivo de audio de renderizado por defecto.
-    hr = pEnumerator->GetDefaultAudioEndpoint(
-        eRender, eConsole, &pDevice);
+    // 3. Obtener el dispositivo de captura de audio por defecto.
+    hr = pEnumerator->GetDefaultAudioEndpoint(eRender, eConsole, &pDevice);
     if (FAILED(hr)) {
-        std::cerr << "Error: GetDefaultAudioEndpoint falló. HRESULT: " << hr << std::endl;
-        pEnumerator->Release();
-        CoUninitialize();
-        return;
+        std::cerr << "Error: GetDefaultAudioEndpoint fallido, hr = 0x" << std::hex << hr << std::endl;
+        goto cleanup;
     }
 
-    // 4. Activar la interfaz de IAudioClient para el dispositivo.
+    // 4. Activar la interfaz de cliente de audio.
     hr = pDevice->Activate(
-        IID_IAudioClient, CLSCTX_ALL, NULL,
-        (void**)&pAudioClient);
+        IID_IAudioClient,
+        CLSCTX_ALL,
+        NULL,
+        (void**)&pAudioClient
+    );
     if (FAILED(hr)) {
-        std::cerr << "Error: Activate IAudioClient falló. HRESULT: " << hr << std::endl;
-        pEnumerator->Release();
-        pDevice->Release();
-        CoUninitialize();
-        return;
+        std::cerr << "Error: Activar IAudioClient fallido, hr = 0x" << std::hex << hr << std::endl;
+        goto cleanup;
     }
 
-    // 5. Obtener el formato de onda del dispositivo.
+    // 5. Obtener el formato de audio soportado.
     hr = pAudioClient->GetMixFormat(&pwfx);
     if (FAILED(hr)) {
-        std::cerr << "Error: GetMixFormat falló. HRESULT: " << hr << std::endl;
-        pEnumerator->Release();
-        pDevice->Release();
-        pAudioClient->Release();
-        CoUninitialize();
-        return;
+        std::cerr << "Error: GetMixFormat fallido, hr = 0x" << std::hex << hr << std::endl;
+        goto cleanup;
     }
 
-    // 6. Inicializar la sesión de audio.
+    // 6. Inicializar el cliente de audio con el formato de mezcla.
+    // Usamos AUDCLNT_STREAMFLAGS_LOOPBACK para capturar el audio que se está reproduciendo.
     hr = pAudioClient->Initialize(
         AUDCLNT_SHAREMODE_SHARED,
         AUDCLNT_STREAMFLAGS_LOOPBACK,
         0,
         0,
         pwfx,
-        NULL);
+        NULL
+    );
     if (FAILED(hr)) {
-        std::cerr << "Error: Initialize falló. HRESULT: " << hr << std::endl;
-        CoTaskMemFree(pwfx);
-        pEnumerator->Release();
-        pDevice->Release();
-        pAudioClient->Release();
-        CoUninitialize();
-        return;
+        std::cerr << "Error: Inicializar IAudioClient fallido, hr = 0x" << std::hex << hr << std::endl;
+        goto cleanup;
     }
 
-    // 7. Activar la interfaz de IAudioCaptureClient.
-    hr = pAudioClient->GetService(
-        IID_IAudioCaptureClient,
-        (void**)&pCaptureClient);
+    // 7. Obtener la interfaz de captura de audio.
+    hr = pAudioClient->GetService(IID_IAudioCaptureClient, (void**)&pCaptureClient);
     if (FAILED(hr)) {
-        std::cerr << "Error: GetService falló. HRESULT: " << hr << std::endl;
-        CoTaskMemFree(pwfx);
-        pEnumerator->Release();
-        pDevice->Release();
-        pAudioClient->Release();
-        CoUninitialize();
-        return;
+        std::cerr << "Error: Obtener servicio IAudioCaptureClient fallido, hr = 0x" << std::hex << hr << std::endl;
+        goto cleanup;
     }
 
-    // 8. Iniciar la captura.
+    // 8. Iniciar el motor de audio.
     hr = pAudioClient->Start();
     if (FAILED(hr)) {
-        std::cerr << "Error: Start falló. HRESULT: " << hr << std::endl;
-        CoTaskMemFree(pwfx);
-        pEnumerator->Release();
-        pDevice->Release();
-        pAudioClient->Release();
-        pCaptureClient->Release();
-        CoUninitialize();
-        return;
+        std::cerr << "Error: Fallo al iniciar el motor de audio, hr = 0x" << std::hex << hr << std::endl;
+        goto cleanup;
     }
 
-    std::cout << "Captura de audio iniciada en un hilo separado. Presiona Ctrl+C para detener." << std::endl;
+    std::cout << "Hilo de captura de audio iniciado." << std::endl;
 
     // Bucle principal de captura.
     while (true) {
         UINT32 numFramesInPacket = 0;
-        BYTE* pData = NULL;
-        DWORD flags = 0;
-
         hr = pCaptureClient->GetNextPacketSize(&numFramesInPacket);
 
         if (numFramesInPacket == 0) {
-            Sleep(5);
             continue;
         }
 
-        std::cout << "Se recibieron " << numFramesInPacket << " frames de audio." << std::endl;
+        BYTE* pData;
+        UINT32 numFramesToRead;
+        DWORD dwFlags;
 
-        hr = pCaptureClient->GetBuffer(
-            &pData,
-            &numFramesInPacket,
-            &flags,
-            NULL,
-            NULL);
-
+        hr = pCaptureClient->GetBuffer(&pData, &numFramesToRead, &dwFlags, NULL, NULL);
         if (FAILED(hr)) {
-            std::cerr << "Error: GetBuffer falló. HRESULT: " << hr << std::endl;
-            // No se debe liberar un búfer que no se pudo obtener
             continue;
         }
 
-        if (SUCCEEDED(hr) && !(flags & AUDCLNT_BUFFERFLAGS_SILENT)) {
-            if (pwfx->wBitsPerSample == 32) {
-                float* pFloatData = reinterpret_cast<float*>(pData);
-                for (UINT32 i = 0; i < numFramesInPacket; ++i) {
-                    accumulated_data.push_back(static_cast<double>(pFloatData[i]));
+        if (!(dwFlags & AUDCLNT_BUFFERFLAGS_SILENT)) {
+            const float* pFloatData = reinterpret_cast<const float*>(pData);
+            for (UINT32 i = 0; i < numFramesToRead; ++i) {
+                if (buffer_position < FFT_SIZE) {
+                    local_buffer[buffer_position++] = static_cast<double>(pFloatData[i]);
+                }
+                else {
+                    break;
                 }
             }
         }
 
-        hr = pCaptureClient->ReleaseBuffer(numFramesInPacket);
-        if (FAILED(hr)) {
-            std::cerr << "Error: ReleaseBuffer falló. HRESULT: " << hr << std::endl;
-            // Manejar este error si es posible, aunque es raro que falle
-            continue;
-        }
+        pCaptureClient->ReleaseBuffer(numFramesToRead);
 
-        std::cout << "Tamaño de accumulated_data antes del chequeo: " << accumulated_data.size() << std::endl;
-
-        if (accumulated_data.size() >= FFT_SIZE) {
-            std::cout << "Tamaño de accumulated_data suficiente. Copiando datos..." << std::endl;
+        if (buffer_position >= FFT_SIZE) {
             std::unique_lock<std::mutex> lock(sharedData.mtx);
-
-            // Verificamos que el destino tenga el tamaño correcto antes de copiar.
-            if (sharedData.in_data.size() != FFT_SIZE) {
-                std::cerr << "Error: El tamaño del vector de destino no es correcto." << std::endl;
-                // Manejo de error o redimensionar
-                sharedData.in_data.resize(FFT_SIZE);
-            }
-
-            std::copy(accumulated_data.begin(), accumulated_data.begin() + FFT_SIZE, sharedData.in_data.begin());
-            std::cout << "Datos copiados." << std::endl;
-
-            std::cout << "Eliminando datos del búfer de acumulación..." << std::endl;
-            accumulated_data.erase(accumulated_data.begin(), accumulated_data.begin() + FFT_SIZE);
-            std::cout << "Datos eliminados. Nuevo tamaño: " << accumulated_data.size() << std::endl;
-
+            std::copy(local_buffer.begin(), local_buffer.begin() + FFT_SIZE, sharedData.in_data.begin());
             lock.unlock();
+
             sharedData.cv.notify_one();
+            buffer_position = 0;
         }
     }
 
-    // Liberar los objetos COM.
+cleanup:
+    // Sección de limpieza centralizada.
+    if (pCaptureClient) pCaptureClient->Release();
+    if (pAudioClient) pAudioClient->Release();
+    if (pDevice) pDevice->Release();
+    if (pEnumerator) pEnumerator->Release();
     CoTaskMemFree(pwfx);
-    pEnumerator->Release();
-    pDevice->Release();
-    pAudioClient->Release();
-    pCaptureClient->Release();
     CoUninitialize();
 }
