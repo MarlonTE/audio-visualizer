@@ -1,27 +1,13 @@
-# Visual Studio Temporary Files
+# Archivos y carpetas generados por Visual Studio y el sistema
 .vs/
-*.vsidx
-*.suo
-*.user
-
-# Executables and object files
-*.exe
-*.obj
-*.ilk
-*.pdb
-*.ipch
-*.tlog
-*.lastbuildstate
-
-# Visual Studio Solution and Project Files
-*.sln
-*.vcxproj.user
-
-# Temporary files and build artifacts
-Debug/
-Release/
 x64/
+*.vcxproj.user
+*.vcxproj.filters
+
+# Librerías externas
+# Se recomienda gestionar estas con un gestor de paquetes (como vcpkg)
+# y no subirlas al repositorio.
 fftw-3.3.5-dll64/
 glew-2.1.0/
-glfw-3.4.bin.WIN64
+glfw-3.4.bin.WIN64/
 json-develop/
