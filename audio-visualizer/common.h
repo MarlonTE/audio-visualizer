@@ -4,6 +4,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <atomic>
+#include "config.h"
 
 // Tamaño de la ventana de la FFT
 const int FFT_SIZE = 1024;
@@ -26,3 +27,4 @@ struct VisualizerData {
     // Índice atómico para indicar qué búfer es el que se está escribiendo actualmente
     std::atomic<int> write_buffer_index;
 };
+
