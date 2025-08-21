@@ -1,0 +1,10 @@
+{
+  "estilos": {
+    "decay_factor": 0.85,
+    "smoothing_factor": 0.05,
+    "amplitude_factor": 0.04,
+    "base_color_rgb": [ 0.65, 0.15, 0.15 ],
+    "reactivity_factor": 0.8,
+    "bin_grouping_factor": 10.0
+  }
+}

@@ -5,8 +5,10 @@
 #include <functiondiscoverykeys_devpkey.h>
 #include <stdio.h>
 #include <vector>
+#include <chrono>
 
 #pragma comment(lib, "avrt.lib")
+#pragma comment(lib, "ole32.lib")
 
 // Constantes globales de audio
 const CLSID CLSID_MMDeviceEnumerator = __uuidof(MMDeviceEnumerator);
@@ -15,7 +17,7 @@ const IID IID_IAudioClient = __uuidof(IAudioClient);
 const IID IID_IAudioCaptureClient = __uuidof(IAudioCaptureClient);
 
 // Función principal del hilo de captura de audio (WASAPI)
-void AudioCaptureThread(AudioData& sharedData) {
+void AudioCaptureThread(AudioData& sharedData, VisualizerData& visualizerData) {
     HRESULT hr = S_OK;
     IMMDeviceEnumerator* pEnumerator = NULL;
     IMMDevice* pDevice = NULL;
@@ -30,86 +32,77 @@ void AudioCaptureThread(AudioData& sharedData) {
     // 1. Inicializar la biblioteca COM para el hilo.
     hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
     if (FAILED(hr)) {
-        std::cerr << "Error: CoInitializeEx fallido, hr = 0x" << std::hex << hr << std::endl;
+        std::cerr << "Error: No se pudo inicializar COM." << std::endl;
         goto cleanup;
     }
 
-    // 2. Crear el enumerador de dispositivos.
+    // 2. Obtener un enumerador de dispositivos de audio.
     hr = CoCreateInstance(
-        CLSID_MMDeviceEnumerator,
-        NULL,
-        CLSCTX_ALL,
-        IID_IMMDeviceEnumerator,
-        (void**)&pEnumerator
-    );
+        CLSID_MMDeviceEnumerator, NULL,
+        CLSCTX_ALL, IID_IMMDeviceEnumerator,
+        (void**)&pEnumerator);
     if (FAILED(hr)) {
-        std::cerr << "Error: CoCreateInstance fallido, hr = 0x" << std::hex << hr << std::endl;
+        std::cerr << "Error: No se pudo crear el enumerador de dispositivos." << std::endl;
         goto cleanup;
     }
 
-    // 3. Obtener el dispositivo de captura de audio por defecto.
+    // 3. Obtener el dispositivo de renderizado de audio por defecto.
     hr = pEnumerator->GetDefaultAudioEndpoint(eRender, eConsole, &pDevice);
     if (FAILED(hr)) {
-        std::cerr << "Error: GetDefaultAudioEndpoint fallido, hr = 0x" << std::hex << hr << std::endl;
+        std::cerr << "Error: No se pudo obtener el dispositivo de audio por defecto." << std::endl;
         goto cleanup;
     }
 
-    // 4. Activar la interfaz de cliente de audio.
+    // 4. Activar el cliente de audio en el dispositivo de audio.
     hr = pDevice->Activate(
-        IID_IAudioClient,
-        CLSCTX_ALL,
-        NULL,
-        (void**)&pAudioClient
-    );
+        IID_IAudioClient, CLSCTX_ALL,
+        NULL, (void**)&pAudioClient);
     if (FAILED(hr)) {
-        std::cerr << "Error: Activar IAudioClient fallido, hr = 0x" << std::hex << hr << std::endl;
+        std::cerr << "Error: No se pudo activar el cliente de audio." << std::endl;
         goto cleanup;
     }
 
-    // 5. Obtener el formato de audio soportado.
+    // 5. Obtener el formato de onda del dispositivo.
     hr = pAudioClient->GetMixFormat(&pwfx);
     if (FAILED(hr)) {
-        std::cerr << "Error: GetMixFormat fallido, hr = 0x" << std::hex << hr << std::endl;
+        std::cerr << "Error: No se pudo obtener el formato de mezcla." << std::endl;
         goto cleanup;
     }
 
-    // 6. Inicializar el cliente de audio con el formato de mezcla.
-    // Usamos AUDCLNT_STREAMFLAGS_LOOPBACK para capturar el audio que se está reproduciendo.
+    // 6. Inicializar el cliente de audio para la captura de un loopback.
     hr = pAudioClient->Initialize(
         AUDCLNT_SHAREMODE_SHARED,
-        AUDCLNT_STREAMFLAGS_LOOPBACK,
-        0,
-        0,
-        pwfx,
-        NULL
-    );
+        AUDCLNT_STREAMFLAGS_LOOPBACK, // Captura de la salida de audio del sistema
+        0, 0, pwfx, NULL);
     if (FAILED(hr)) {
-        std::cerr << "Error: Inicializar IAudioClient fallido, hr = 0x" << std::hex << hr << std::endl;
+        std::cerr << "Error: No se pudo inicializar el cliente de audio para loopback." << std::endl;
         goto cleanup;
     }
 
-    // 7. Obtener la interfaz de captura de audio.
-    hr = pAudioClient->GetService(IID_IAudioCaptureClient, (void**)&pCaptureClient);
+    // 7. Obtener el cliente de captura de audio.
+    hr = pAudioClient->GetService(
+        IID_IAudioCaptureClient,
+        (void**)&pCaptureClient);
     if (FAILED(hr)) {
-        std::cerr << "Error: Obtener servicio IAudioCaptureClient fallido, hr = 0x" << std::hex << hr << std::endl;
+        std::cerr << "Error: No se pudo obtener el cliente de captura." << std::endl;
         goto cleanup;
     }
 
-    // 8. Iniciar el motor de audio.
     hr = pAudioClient->Start();
     if (FAILED(hr)) {
-        std::cerr << "Error: Fallo al iniciar el motor de audio, hr = 0x" << std::hex << hr << std::endl;
+        std::cerr << "Error: No se pudo iniciar el cliente de audio." << std::endl;
         goto cleanup;
     }
 
     std::cout << "Hilo de captura de audio iniciado." << std::endl;
 
-    // Bucle principal de captura.
-    while (true) {
+    // Bucle principal que lee los datos de audio.
+    while (!visualizerData.should_terminate.load()) {
         UINT32 numFramesInPacket = 0;
         hr = pCaptureClient->GetNextPacketSize(&numFramesInPacket);
 
         if (numFramesInPacket == 0) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
             continue;
         }
 
@@ -147,11 +140,11 @@ void AudioCaptureThread(AudioData& sharedData) {
     }
 
 cleanup:
-    // Sección de limpieza centralizada.
-    if (pCaptureClient) pCaptureClient->Release();
-    if (pAudioClient) pAudioClient->Release();
-    if (pDevice) pDevice->Release();
+    // Limpieza de recursos COM y de la memoria.
     if (pEnumerator) pEnumerator->Release();
-    CoTaskMemFree(pwfx);
+    if (pDevice) pDevice->Release();
+    if (pAudioClient) pAudioClient->Release();
+    if (pCaptureClient) pCaptureClient->Release();
+    if (pwfx) CoTaskMemFree(pwfx);
     CoUninitialize();
 }

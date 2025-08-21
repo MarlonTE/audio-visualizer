@@ -4,11 +4,10 @@
 #include <mutex>
 #include <condition_variable>
 #include <atomic>
+#include "config.h"
 
-// Tamaño de la ventana de la FFT
-const int FFT_SIZE = 1024;
-// Número de barras a visualizar, que es la mitad del tamaño de la FFT
-const int NUM_BARS = FFT_SIZE / 2;
+// Tamaño de la ventana de la FFT.
+const int FFT_SIZE = 4096;
 
 // Estructura de datos compartida entre el hilo de captura y el de procesamiento
 struct AudioData {
@@ -25,4 +24,8 @@ struct VisualizerData {
     std::vector<double> out_data[2];
     // Índice atómico para indicar qué búfer es el que se está escribiendo actualmente
     std::atomic<int> write_buffer_index;
+    // Variable atómica para comunicar el número de barras entre hilos
+    std::atomic<int> atomic_num_bars;
+    // Bandera para indicar a los hilos que deben terminar
+    std::atomic<bool> should_terminate;
 };
