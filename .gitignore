@@ -21,3 +21,7 @@
 Debug/
 Release/
 x64/
+fftw-3.3.5-dll64/
+glew-2.1.0/
+glfw-3.4.bin.WIN64
+json-develop/
