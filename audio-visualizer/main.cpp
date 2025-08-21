@@ -13,9 +13,12 @@ int main() {
 
     // Crear una instancia de la estructura de datos compartida para la visualización.
     VisualizerData sharedVisualizerData;
-    sharedVisualizerData.out_data[0].resize(NUM_BARS);
-    sharedVisualizerData.out_data[1].resize(NUM_BARS);
+    // Inicializamos con un valor por defecto.
+    const int DEFAULT_WINDOW_WIDTH = 1024;
+    sharedVisualizerData.out_data[0].resize(DEFAULT_WINDOW_WIDTH);
+    sharedVisualizerData.out_data[1].resize(DEFAULT_WINDOW_WIDTH);
     sharedVisualizerData.write_buffer_index.store(0);
+    sharedVisualizerData.atomic_num_bars.store(DEFAULT_WINDOW_WIDTH);
 
     // Crear una instancia de la estructura de configuración compartida.
     SharedConfigData sharedConfigData;
@@ -26,7 +29,7 @@ int main() {
     std::thread audioCaptureThread(AudioCaptureThread, std::ref(sharedAudioData));
 
     // Crear un hilo para el procesamiento de la señal.
-    std::thread signalProcessingThread(AudioProcessingThread, std::ref(sharedAudioData), std::ref(sharedVisualizerData));
+    std::thread signalProcessingThread(AudioProcessingThread, std::ref(sharedAudioData), std::ref(sharedVisualizerData), std::ref(sharedConfigData));
 
     // Crear un hilo para el renderizado de la visualización, pasándole los datos de visualización y de configuración.
     std::thread renderThread(RenderThread, std::ref(sharedVisualizerData), std::ref(sharedConfigData));

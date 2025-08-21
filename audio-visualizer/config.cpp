@@ -40,6 +40,13 @@ void LoadConfig(SharedConfigData& sharedConfigData, const std::string& filename)
                     sharedConfigData.config.base_color_rgb = { 0.0f, 0.9f, 0.3f }; // Valor por defecto
                 }
             }
+            // Leer el nuevo factor de agrupamiento
+            if (estilos.contains("bin_grouping_factor")) {
+                sharedConfigData.config.bin_grouping_factor = estilos["bin_grouping_factor"].get<float>();
+            }
+            else {
+                sharedConfigData.config.bin_grouping_factor = 10.0f; // Valor por defecto
+            }
         }
     }
     catch (const json::parse_error& e) {

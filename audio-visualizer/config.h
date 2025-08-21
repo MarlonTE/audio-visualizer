@@ -18,6 +18,8 @@ struct VisualizerConfig {
     float reactivity_factor;
     // Color base en formato RGB
     std::vector<float> base_color_rgb;
+    // Factor de agrupamiento de bins para controlar el ancho de banda por barra.
+    float bin_grouping_factor;
 };
 
 // Estructura de datos compartida para pasar la configuración entre hilos.

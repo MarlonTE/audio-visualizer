@@ -6,14 +6,53 @@
 #include <atomic>
 #include "config.h"
 
+// Factor para el espacio entre las barras, como un porcentaje del ancho de la barra.
+// Un valor de 0.1 significa un espacio del 10% del ancho de la barra.
+const float BAR_GAP_FACTOR = 0.1f;
+
 // Almacenamos las alturas actuales de las barras para implementar el decaimiento.
-static std::vector<double> current_heights(NUM_BARS, 0.0);
+static std::vector<double> current_heights;
 // Almacenamos las alturas suavizadas para el efecto "ola".
-static std::vector<double> smoothed_heights(NUM_BARS, 0.0);
+static std::vector<double> smoothed_heights;
+// Punteros a los datos compartidos.
+static VisualizerData* sharedVisualizerDataPtr = nullptr;
+
+// Función de callback para redimensionar la ventana.
+void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+    // Redimensionar el viewport de OpenGL para que coincida con la nueva ventana.
+    glViewport(0, 0, width, height);
+
+    if (sharedVisualizerDataPtr) {
+        int new_num_bars = width;
+        sharedVisualizerDataPtr->atomic_num_bars.store(new_num_bars);
+
+        // Bloquear el mutex del búfer de visualización para redimensionar de forma segura.
+        std::unique_lock<std::mutex> lock(sharedVisualizerDataPtr->mtx);
+
+        // Redimensionar los búferes de datos compartidos para que coincidan con el nuevo ancho.
+        sharedVisualizerDataPtr->out_data[0].resize(new_num_bars, 0.0);
+        sharedVisualizerDataPtr->out_data[1].resize(new_num_bars, 0.0);
+
+        // Redimensionar los búferes de decaimiento y suavizado.
+        current_heights.resize(new_num_bars, 0.0);
+        smoothed_heights.resize(new_num_bars, 0.0);
+
+        // El hilo de procesamiento se encargará de redimensionar sus propios búferes.
+        // Aquí no es necesario hacer nada más, ya que el siguiente ciclo de procesamiento
+        // usará el nuevo valor de 'atomic_num_bars'.
+    }
+}
 
 // The main rendering thread function
 void RenderThread(VisualizerData& sharedVisualizerData, SharedConfigData& sharedConfigData) {
     std::cout << "Rendering thread started." << std::endl;
+    // Asignar el puntero para que la función de callback pueda acceder a los datos.
+    sharedVisualizerDataPtr = &sharedVisualizerData;
+
+    // Inicializar los vectores de altura.
+    const int initial_width = 1024;
+    current_heights.resize(initial_width, 0.0);
+    smoothed_heights.resize(initial_width, 0.0);
 
     // Obtener los factores de configuración de forma segura.
     std::unique_lock<std::mutex> config_lock(sharedConfigData.mtx);
@@ -30,7 +69,7 @@ void RenderThread(VisualizerData& sharedVisualizerData, SharedConfigData& shared
     }
 
     // Create a windowed mode window and its OpenGL context.
-    GLFWwindow* window = glfwCreateWindow(1024, 600, "Audio Visualizer", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(initial_width, 600, "Audio Visualizer", NULL, NULL);
     if (!window) {
         std::cerr << "Error: Failed to create GLFW window." << std::endl;
         glfwTerminate();
@@ -40,6 +79,9 @@ void RenderThread(VisualizerData& sharedVisualizerData, SharedConfigData& shared
     // Make the window's context current.
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1); // Enable V-Sync to synchronize with the monitor's refresh rate.
+
+    // Registrar la función de callback de redimensionamiento.
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     // Main rendering loop
     while (!glfwWindowShouldClose(window)) {
@@ -55,9 +97,10 @@ void RenderThread(VisualizerData& sharedVisualizerData, SharedConfigData& shared
 
         // Get the index of the buffer that the processing thread just wrote to
         int read_index = sharedVisualizerData.write_buffer_index.load();
+        int current_num_bars = sharedVisualizerData.atomic_num_bars.load();
 
         // Loop through the data and draw a bar for each frequency bin.
-        for (int i = 0; i < NUM_BARS; ++i) {
+        for (int i = 0; i < current_num_bars; ++i) {
             // Leer los datos procesados del búfer compartido.
             double raw_value = sharedVisualizerData.out_data[read_index][i];
 
@@ -80,8 +123,12 @@ void RenderThread(VisualizerData& sharedVisualizerData, SharedConfigData& shared
             if (bar_height_normalized < 0.0) bar_height_normalized = 0.0;
 
             // Bar dimensions and position.
-            double bar_width = 2.0 / NUM_BARS;
+            double bar_width = 2.0 / current_num_bars;
             double x_position = -1.0 + i * bar_width;
+
+            // Ajustar el ancho de la barra para crear un espacio.
+            double adjusted_bar_width = bar_width * (1.0 - BAR_GAP_FACTOR);
+
             double y_height = bar_height_normalized * 1.5 - 1.0;
 
             // Set the color of the bar using the base color from config and a gradient.
@@ -91,8 +138,8 @@ void RenderThread(VisualizerData& sharedVisualizerData, SharedConfigData& shared
 
             // Draw a quad (rectangle) for the bar.
             glVertex2f(x_position, -1.0f);
-            glVertex2f(x_position + bar_width - 0.01f, -1.0f);
-            glVertex2f(x_position + bar_width - 0.01f, y_height);
+            glVertex2f(x_position + adjusted_bar_width, -1.0f);
+            glVertex2f(x_position + adjusted_bar_width, y_height);
             glVertex2f(x_position, y_height);
         }
 
@@ -106,4 +153,3 @@ void RenderThread(VisualizerData& sharedVisualizerData, SharedConfigData& shared
     // Clean up.
     glfwTerminate();
 }
-
