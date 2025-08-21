@@ -76,12 +76,12 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\proyects\audio-visualizer\audio-visualizer\glfw-3.4.bin.WIN64\include;C:\proyects\audio-visualizer\audio-visualizer\glew-2.1.0\include;C:\proyects\audio-visualizer\audio-visualizer\fftw-3.3.5-dll64;C:\proyects\audio-visualizer\audio-visualizer\json-develop\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\proyects\audio-visualizer\glfw-3.4.bin.WIN64\include;C:\proyects\audio-visualizer\glew-2.1.0\include;C:\proyects\audio-visualizer\fftw-3.3.5-dll64;C:\proyects\audio-visualizer\json-develop\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\proyects\audio-visualizer\audio-visualizer\glfw-3.4.bin.WIN64\lib-vc2022;C:\proyects\audio-visualizer\audio-visualizer\glew-2.1.0\lib\Release\x64;C:\proyects\audio-visualizer\audio-visualizer\fftw-3.3.5-dll64;C:\proyects\audio-visualizer\audio-visualizer\json-develop\include\nlohmann;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\proyects\audio-visualizer\glfw-3.4.bin.WIN64\lib-vc2022;C:\proyects\audio-visualizer\glew-2.1.0\lib\Release\x64;C:\proyects\audio-visualizer\fftw-3.3.5-dll64;C:\proyects\audio-visualizer\json-develop\include\nlohmann;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libfftw3f-3.lib;libfftw3-3.lib;glew32.lib;glfw3.lib;winmm.lib;comctl32.lib;ole32.lib;uuid.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
     </Link>
@@ -94,12 +94,12 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\proyects\audio-visualizer\audio-visualizer\glfw-3.4.bin.WIN64\include;C:\proyects\audio-visualizer\audio-visualizer\glew-2.1.0\include;C:\proyects\audio-visualizer\audio-visualizer\fftw-3.3.5-dll64;C:\proyects\audio-visualizer\audio-visualizer\json-develop\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\proyects\audio-visualizer\glfw-3.4.bin.WIN64\include;C:\proyects\audio-visualizer\glew-2.1.0\include;C:\proyects\audio-visualizer\fftw-3.3.5-dll64;C:\proyects\audio-visualizer\json-develop\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\proyects\audio-visualizer\audio-visualizer\glfw-3.4.bin.WIN64\lib-vc2022;C:\proyects\audio-visualizer\audio-visualizer\glew-2.1.0\lib\Release\x64;C:\proyects\audio-visualizer\audio-visualizer\fftw-3.3.5-dll64;C:\proyects\audio-visualizer\audio-visualizer\json-develop\include\nlohmann;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\proyects\audio-visualizer\glfw-3.4.bin.WIN64\lib-vc2022;C:\proyects\audio-visualizer\glew-2.1.0\lib\Release\x64;C:\proyects\audio-visualizer\fftw-3.3.5-dll64;C:\proyects\audio-visualizer\json-develop\include\nlohmann;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libfftw3f-3.lib;libfftw3-3.lib;glew32.lib;glfw3.lib;winmm.lib;comctl32.lib;ole32.lib;uuid.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
     </Link>
@@ -110,14 +110,14 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\proyects\audio-visualizer\audio-visualizer\glfw-3.4.bin.WIN64\include;C:\proyects\audio-visualizer\audio-visualizer\glew-2.1.0\include;C:\proyects\audio-visualizer\audio-visualizer\fftw-3.3.5-dll64;C:\proyects\audio-visualizer\audio-visualizer\json-develop\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\proyects\audio-visualizer\glfw-3.4.bin.WIN64\include;C:\proyects\audio-visualizer\glew-2.1.0\include;C:\proyects\audio-visualizer\fftw-3.3.5-dll64;C:\proyects\audio-visualizer\json-develop\include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\proyects\audio-visualizer\audio-visualizer\glfw-3.4.bin.WIN64\lib-vc2022;C:\proyects\audio-visualizer\audio-visualizer\glew-2.1.0\lib\Release\x64;C:\proyects\audio-visualizer\audio-visualizer\fftw-3.3.5-dll64;C:\proyects\audio-visualizer\audio-visualizer\json-develop\include\nlohmann;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\proyects\audio-visualizer\glfw-3.4.bin.WIN64\lib-vc2022;C:\proyects\audio-visualizer\glew-2.1.0\lib\Release\x64;C:\proyects\audio-visualizer\fftw-3.3.5-dll64;C:\proyects\audio-visualizer\json-develop\include\nlohmann;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libfftw3f-3.lib;libfftw3-3.lib;glew32.lib;glfw3.lib;winmm.lib;comctl32.lib;ole32.lib;uuid.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
     </Link>
@@ -130,12 +130,12 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\proyects\audio-visualizer\audio-visualizer\glfw-3.4.bin.WIN64\include;C:\proyects\audio-visualizer\audio-visualizer\glew-2.1.0\include;C:\proyects\audio-visualizer\audio-visualizer\fftw-3.3.5-dll64;C:\proyects\audio-visualizer\audio-visualizer\json-develop\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\proyects\audio-visualizer\glfw-3.4.bin.WIN64\include;C:\proyects\audio-visualizer\glew-2.1.0\include;C:\proyects\audio-visualizer\fftw-3.3.5-dll64;C:\proyects\audio-visualizer\json-develop\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\proyects\audio-visualizer\audio-visualizer\glfw-3.4.bin.WIN64\lib-vc2022;C:\proyects\audio-visualizer\audio-visualizer\glew-2.1.0\lib\Release\x64;C:\proyects\audio-visualizer\audio-visualizer\fftw-3.3.5-dll64;C:\proyects\audio-visualizer\audio-visualizer\json-develop\include\nlohmann;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\proyects\audio-visualizer\glfw-3.4.bin.WIN64\lib-vc2022;C:\proyects\audio-visualizer\glew-2.1.0\lib\Release\x64;C:\proyects\audio-visualizer\fftw-3.3.5-dll64;C:\proyects\audio-visualizer\json-develop\include\nlohmann;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libfftw3f-3.lib;libfftw3-3.lib;glew32.lib;glfw3.lib;winmm.lib;comctl32.lib;ole32.lib;uuid.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
     </Link>
