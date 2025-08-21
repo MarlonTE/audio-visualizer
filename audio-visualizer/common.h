@@ -26,4 +26,6 @@ struct VisualizerData {
     std::atomic<int> write_buffer_index;
     // Variable atómica para comunicar el número de barras entre hilos
     std::atomic<int> atomic_num_bars;
+    // Bandera para indicar a los hilos que deben terminar
+    std::atomic<bool> should_terminate;
 };

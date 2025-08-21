@@ -23,9 +23,13 @@ void AudioProcessingThread(AudioData& sharedData, VisualizerData& sharedVisualiz
     std::vector<double> dummy_in(FFT_SIZE);
     plan_forward = fftw_plan_dft_r2c_1d(FFT_SIZE, dummy_in.data(), fft_out, FFTW_MEASURE);
 
-    while (true) {
+    while (!sharedVisualizerData.should_terminate.load()) {
         std::unique_lock<std::mutex> lock(sharedData.mtx);
         sharedData.cv.wait(lock);
+
+        if (sharedVisualizerData.should_terminate.load()) {
+            break;
+        }
 
         fftw_execute_dft_r2c(plan_forward, sharedData.in_data.data(), fft_out);
 
@@ -46,6 +50,7 @@ void AudioProcessingThread(AudioData& sharedData, VisualizerData& sharedVisualiz
         const double bins_per_bar = bin_grouping_factor / bin_resolution;
 
         // Limpiar el búfer antes de escribir en él
+        sharedVisualizerData.out_data[write_index].resize(num_bars, 0.0);
         std::fill(sharedVisualizerData.out_data[write_index].begin(), sharedVisualizerData.out_data[write_index].end(), 0.0);
 
         for (int i = 0; i < num_bars; ++i) {
@@ -70,7 +75,9 @@ void AudioProcessingThread(AudioData& sharedData, VisualizerData& sharedVisualiz
             scaled_value = std::min(scaled_value, 50.0);
             scaled_value = std::max(scaled_value, 0.0);
 
-            sharedVisualizerData.out_data[write_index][i] = scaled_value;
+            if (i < sharedVisualizerData.out_data[write_index].size()) {
+                sharedVisualizerData.out_data[write_index][i] = scaled_value;
+            }
         }
 
         sharedVisualizerData.write_buffer_index.store(1 - write_index);
